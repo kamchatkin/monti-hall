@@ -122,7 +122,7 @@ div.doors div.door span.door_car {
 		body.insertAdjacentElement('beforeend', obj);
 	};
 
-	draw_doors = function(){
+	draw_doors = function(use_handler = true){
 		// wrapper
 		let _doors = document.createElement('div');
 		_doors.setAttribute('class','doors');
@@ -136,8 +136,12 @@ div.doors div.door span.door_car {
 				node.className = node.className.replace(' door_pointer', '');
 			}
 		};
+		console.log( 'use_handler', use_handler );
 		for(let c = 0; c < 3; ++c){
 			let can_be_opened = !(doors[c].t === SHEEP);
+			if(!use_handler) {
+				can_be_opened = false;
+			}
 
 			let _door = document.createElement('div');
 			_door.setAttribute('class', 'door' + (can_be_opened ? ' door_pointer' : ''));
@@ -273,7 +277,7 @@ div.doors div.door span.door_car {
 
 		ui(selected_door + (answer + 1));
 		ui(result_text);
-		draw_doors();
+		draw_doors(use_handler = false);
 
 		ui('line');
 
@@ -291,7 +295,7 @@ div.doors div.door span.door_car {
 		<p>Перевод видео с канала "Numberphile". Версия видео на английском - <a href="https://www.youtube.com/watch?v=4Lb-6rxZxx0">https://www.youtube.com/watch?v=4Lb-6rxZxx0</a></p>
 
 		<a href="http://madastronomy.freeiz.com/monty/monty.php">Альтернативный вариант</a>
-		<p>БЫл найден под видео, ссылка на которе выше.</p>
+		<p>Был найден под видео, ссылка на которое выше.</p>
 
 		<strong>Статистика прохождений в процессе</strong>
 
