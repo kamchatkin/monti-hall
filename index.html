@@ -1,0 +1,307 @@
+<!doctype html>
+<html>
+<head>
+<title></title>
+<style>
+body {
+	padding: 20px;
+	cursor: default;
+	font: normal 12pt Arial;
+	line-height:1.4em;
+	padding-left: 20px;
+	padding-bottom: 100px;
+}
+
+#ui {
+	user-select: none;
+	-moz-user-select: none;
+	-webkit-user-select: none;
+	-ms-user-select: none;
+}
+
+div {
+	max-width: 600px;
+	margin: 0 auto;
+}
+
+div p {
+	margin: 0 0 20px 0;
+}
+
+div.head {
+	padding-bottom: 20px;
+}
+
+div.line {
+	border-top: 1px solid #ccc;
+	margin: 20px 0;
+}
+
+div.doors {
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	padding: 0;
+}
+
+div.doors div.door {
+	display: inline-block;
+	position: relative;
+	width: 90px;
+	height: 90px;
+	font-size: 50pt;
+	line-height: normal;
+}
+
+div.doors div.door.door_pointer {
+	cursor: pointer;
+}
+
+div.doors div.door span.door_your_choice,
+div.doors div.door span.door_sheep,
+div.doors div.door span.door_car {
+	position: absolute;
+	right: 0;
+	bottom: 0;
+	font-size: 45pt;
+}
+
+</style>
+</head>
+<body>
+	<div class="head">
+		<strong>Парадокс Монти Холла</strong><br>
+		<a href="https://ru.wikipedia.org/wiki/Парадокс_Монти_Холла">https://ru.wikipedia.org/wiki/Парадокс_Монти_Холла</a> [<a href="https://en.wikipedia.org/wiki/Monty_Hall_problem">en</a>]
+	</div>
+	
+	<div id="ui"></div>
+
+<script type="text/javascript">
+(function(){
+
+	const 
+		YOUR_CHOICE = 'YOUR_CHOICE'
+		SHEEP = 'SHEEP',
+		CAR = 'CAR',
+		DOOR = 'DOOR'
+		MAP_TO_EMOJI = {
+			DOOR: '🚪',
+			YOUR_CHOICE: '🔑',
+			SHEEP: '🐑',
+			CAR: '🚘'
+		}
+		;
+
+	let 
+		start,
+		restart,
+		doors,
+		car_in,
+		draw_doors,
+		first_answer,
+		finish,
+		monti,
+		ui,
+		uiElement,
+		get_rand = (min, max)=>{ return Math.floor(Math.random() * (max - min + 1)) + min },
+		body = document.getElementById('ui')
+		;
+
+	ui = function(str){
+		str += '';
+		if(str === 'line') {
+			str = '<div class="line"></div>';
+		} else {
+			str = '<p>' + str.replace('\n', '<br/>') + '</p>';
+		}
+
+		body.insertAdjacentHTML('beforeend', '<div>' + str + '</div>');
+	};
+
+	uiElement = function(obj){
+		body.insertAdjacentElement('beforeend', obj);
+	};
+
+	draw_doors = function(){
+		// wrapper
+		let _doors = document.createElement('div');
+		_doors.setAttribute('class','doors');
+		
+		let _handlers = [];
+		let remove_handler = function(){
+			let nodes = _doors.childNodes;
+			let iterate = -1;
+			for(let node of nodes){
+				node.removeEventListener( 'click', _handlers[++iterate] );
+				node.className = node.className.replace(' door_pointer', '');
+			}
+		};
+		for(let c = 0; c < 3; ++c){
+			let can_be_opened = !(doors[c].t === SHEEP);
+
+			let _door = document.createElement('div');
+			_door.setAttribute('class', 'door' + (can_be_opened ? ' door_pointer' : ''));
+			_door.setAttribute('data-num', c + 1)
+			_door.innerText = MAP_TO_EMOJI[DOOR];
+
+			if( !!doors[c].t && doors[c].t !== DOOR ) {
+				let child = document.createElement('span');
+				child.className = 'door_' + doors[c].t.toString().toLocaleLowerCase();
+				child.innerHTML = MAP_TO_EMOJI[doors[c].t];
+				_door.insertAdjacentElement( 'beforeend', child );
+			}
+
+			if(can_be_opened){
+				_handlers.push(function(){
+					let child = document.createElement('span');
+					child.className = 'door_' + YOUR_CHOICE.toLocaleLowerCase();
+					child.innerHTML = MAP_TO_EMOJI[YOUR_CHOICE];
+					this.insertAdjacentElement('beforeend', child);
+					setTimeout(monti.bind(null, c+1), 50);
+					remove_handler();
+				});
+			} else {
+				_handlers.push(()=>{});
+			}
+			_door.addEventListener('click', _handlers[c]);
+
+			_doors.insertAdjacentElement('beforeend', _door);
+		};
+		uiElement( _doors );
+	};
+
+	start = function(){
+		first_answer = null;
+		doors = [{t: DOOR, v: SHEEP}, {t: DOOR, v: SHEEP}, {t: DOOR, v: SHEEP}];
+		car_in = get_rand(0, 2);
+		doors[car_in].v = CAR;
+		
+		body.innerHTML = '';
+		ui(`За двумя дверьми находятся овцы, за другой автомобиль мечты.
+			Осталось только угадать за какой. Выбирай дверь!`);
+		
+		draw_doors();
+		ui('line');
+	};
+	start();
+	restart = start;
+
+	window.onkeyup = function(e){
+		code =  e.which || e.keyCode;
+		// let map = {49: 1, 50: 2, 51: 3};
+		// monti(map[code]);
+
+		if(code === 13) {
+			restart();
+		}
+	};
+	
+	monti = function( answer ){
+		if(!answer){
+			return 'Укажи дверь!';
+		}
+
+		--answer;
+
+		if( first_answer !== null ) {
+			return finish(answer);
+		}
+
+		ui('Ты выбираешь дверь: ' + (answer+1) );
+
+		let sheep_door,
+			need = true,
+		 	closed_door = '123';
+		
+		closed_door = closed_door.replace(answer, '');
+
+		while(need){
+			sheep_door = get_rand(0, 2)
+			if( !(sheep_door == answer) && (doors[sheep_door].v !== CAR) ) {
+				doors[sheep_door].t = doors[sheep_door].v;
+				closed_door = closed_door.replace((sheep_door + 1), '');
+				need = false;
+			}
+		}
+
+
+		let comment = `Монти открывает другую дверь, одну из не выбранных, в комнате за ней находится овца. У тебя есть возможность изменить выбор двери. 
+			Какую выберешь?`;
+		ui(comment);
+
+		draw_doors();
+		
+		first_answer = answer;
+		ui('line');
+	};
+
+	finish = function(answer){
+
+		if( doors[answer].t === SHEEP ) {
+			return 'Не можешь открывать эту дверь.';
+		}
+
+		for(let c=0;c<3;++c){
+			doors[c].t = doors[c].v;
+		}
+
+		let other_variant = answer !== first_answer;
+		let win = false;
+		if( doors[answer].v === CAR ) {
+			win = true;
+		}
+
+		// let comment = `Видимо ты разбираешься в теории вероятности, или смотрел смотрел фильм &laquo;<a href="https://www.kinopoisk.ru/film/195847/">21</a>&raquo; и поэтому выбираешь другую дверь, желая повысить свои шансы на выигрыш.
+			// Если ты не понимаешь о чем написано выше, посмотри <a href="https://www.youtube.com/watch?v=FDU0n-j0Xic">это видео</a> и попробуй еще раз.`;
+
+		let selected_door,
+			result_text;
+
+		if( win && other_variant ) {
+			selected_door = 'Ты решаешь выбрать другую дверь:';
+			result_text = 'И это приводит тебя к победе! Все тебя поздравляют!';
+		} else if( win && !other_variant ) {
+			selected_door = 'Ты доверяешься "чуйке" и оставляешь дверь с которой начинал: ';
+			result_text = 'Такой подход тоже имеет шанс на победу, и в этот раз он тебя не подвел!';
+		} else if( !win && other_variant ) {
+			selected_door = 'Ты решаешь выбрать другую дверь: ';
+			result_text = 'Однако в этот раз главный приз оказался за дверью что была выбрана первой.';
+		} else if(!win && !other_variant) {
+			selected_door = 'Ты решаешь остановиться на той же двери: ';
+			result_text = 'И это приводит к тому что твой соперник уезжает на автомобиле что мог достаться тебе.';
+		}
+
+		ui(selected_door + (answer + 1));
+		ui(result_text);
+		draw_doors();
+
+		ui('line');
+
+		let help = `</p>
+		<strong>Дополнительные материалы и статистика прохождений</strong>
+		<br/><br/>
+
+		Википедия: <a href="https://ru.wikipedia.org/wiki/Парадокс_Монти_Холла">https://ru.wikipedia.org/wiki/Парадокс_Монти_Холла</a>
+		<p>Парадокс Монти Холла — одна из известных задач теории вероятностей, решение которой, на первый взгляд, противоречит здравому смыслу.</p>
+		
+		Фильм &laquo;<a href="https://www.kinopoisk.ru/film/195847/">Двадцать одно</a>&raquo;
+		<p>Карточная игра — комбинация уникальных математических расчетов, превосходных актерских талантов и хладнокровной выдержки. Карточный игрок — человек особого склада. Молодые люди решили провернуть аферу века и разорить крупнейшие казино страны на астрономическую сумму. Они решили взять Вегас! Их пятеро. Игра захватила их целиком. Их игра поразила своей виртуозностью. Они изменили ход самой игры.</p>
+
+		<a href="https://www.youtube.com/watch?v=FDU0n-j0Xic">Видео на ютубе про предисторию вопроса и стратегию</a> [ru]
+		<p>Перевод видео с канала "Numberphile". Версия видео на английском - <a href="https://www.youtube.com/watch?v=4Lb-6rxZxx0">https://www.youtube.com/watch?v=4Lb-6rxZxx0</a></p>
+
+		<a href="http://madastronomy.freeiz.com/monty/monty.php">Альтернативный вариант</a>
+		<p>БЫл найден под видео, ссылка на которе выше.</p>
+
+		<strong>Статистика прохождений в процессе</strong>
+
+		<p>
+		`;
+		ui(help);
+	};
+
+})();
+
+</script>
+</body>
+</html>
